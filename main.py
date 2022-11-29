@@ -30,8 +30,6 @@ def get_tree_from_file(treefile="tree.txt"):
             nodes.append(child)
 
     return [nodes, child_dict, edges_dict, q_a]
-a = get_tree_from_file()
-#print(a[1])
 
 def subtree_prob(a,b,t,alpha, bases ="ACGT"):
     '''
@@ -133,14 +131,10 @@ def felsenstein(tree, alpha, col,bases = "ACGT"):
 
             node_values[parent] = parent_vals
             child_dict.pop(parent)
-            # if parent=="Root":
-            #     final_prob = 0
-            #     for i, prob in enumerate(node_values["Root"]):
-            #         final_prob+=prob*q_a[i]
-            #     return final_prob
 
         leaves = get_leaves(child_dict,nodes)
 
+    #output probability
     final_prob = 0
     for i, prob in enumerate(node_values["Root"]):
         final_prob+=prob*q_a[i]
@@ -236,50 +230,50 @@ def make_alphas_arr(filename="out.txt"):
         alpha_arr = [float(i) for i in alpha_arr]
     return alpha_arr
     
-def alphas_for_exons(t):
+def alphas_for_exons():
     human_string = animal_genome_string("Human")
     alpha_arr = make_alphas_arr()
-    #print(len(alpha_arr))
     exons = make_exons_list()
     new_exons = []
     exon_windows = set()
-    non_exon_windows = set()
     all_windows = set()
+    #remap all exon positions
     for exon in exons:
         new_start = remap_exon_ind(exon[0],human_string)
         new_end = remap_exon_ind(exon[1],human_string)
         new_exons.append([new_start,new_end])
+    #check if window is in range of any remapped exon
     for i in range(0,len(human_string),100):
         all_windows.add(i)
         for e_start, e_end in new_exons:
             if (i in range(e_start,e_end) or i+100 in range(e_start,e_end)):
                 exon_windows.add(i)
-                break
+
+
     all_windows = list(all_windows)
-    # print(exon_windows)
+    #compute output
     exonX = [i for i in list(exon_windows) if i//100 < len(alpha_arr)]
     exonY = [alpha_arr[i//100] for i in all_windows[:] if i in exon_windows and i//100 < len(alpha_arr)]
     non_exonX = [i//1 for i in all_windows[:] if i not in exon_windows and i//100 < len(alpha_arr)]
-    # print(len(alpha_arr))
-    # print(len(all_windows))
     non_exonY = [alpha_arr[(i)//100] for i in all_windows[:] if i not in exon_windows and i//100 < len(alpha_arr)]
 
     return exonX, exonY, non_exonX, non_exonY
 
 
-def compute_alpha_for_windows(tree=a):
+def compute_alpha_for_windows(t):
     window_dict = []
     cols = make_cols()
     print(len(cols[1][1]))
     out=[]
     for i in range(0,len(cols[1][0])-100,100):
         try:
-            out.append(find_alpha(a,cols,i,i+100))
+            out.append(find_alpha(t,cols,i,i+100))
             with open("out.txt","w") as file:
                 g = [str(i) for i in out]
                 file.write(";".join(g)) 
 
         except:
+            print("crashed at",i)
             break
     with open("out.txt","w") as file:
         g = [str(i) for i in out]
@@ -287,6 +281,19 @@ def compute_alpha_for_windows(tree=a):
 
 
 
-haf = alphas_for_exons(a)
-for i in haf:
-    print(i[:10])
+t1 = get_tree_from_file()
+
+#task b
+# print(felsenstein(t1,1,make_cols()))
+#task d
+# for i in range(10):
+#     print(f"Window:{i*100}:alpha*={find_alpha(t1,make_cols(),i*100,100+i*100)}")
+#task e
+import matplotlib.pyplot as plt
+exonX, exonY, non_exonX, non_exonY = alphas_for_exons()
+fig, axs = plt.subplots(1, 2, sharey=True, )
+axs[0].hist(exonY,density=True,bins=20)
+axs[1].hist(non_exonY,density=True,bins=20)
+axs[0].set_title("Exon windows")
+axs[1].set_title("Non-Exon windows")
+plt.show()
